@@ -1,8 +1,8 @@
 #!/bin/bash
 ###############################################################################
-# Instala tuning-vm (perfil selecionável )
+# Instala tuning-vm (perfil selecionável)
 # Autor: Diego Costa (@diegocostaroot) / Projeto Root (youtube.com/projetoroot)
-# Versão: 1.3
+# Versão: 1.0
 # Veja o link: https://wiki.projetoroot.com.br
 # 2026
 ###############################################################################
@@ -45,9 +45,11 @@ apply_sysctl() {
 }
 
 run_check() {
-    echo "Executando validação..."
+    local profile_arg="$1"
+
+    echo "Executando validação para perfil: $profile_arg"
     chmod +x "$DEST_CHECK"
-    "$DEST_CHECK"
+    "$DEST_CHECK" "$profile_arg"
 }
 
 require_root() {
@@ -83,6 +85,7 @@ append_systemd_limits() {
 install_profile() {
 
     local profile="$1"
+    local check_arg="baseline"
 
     echo ""
     echo "Instalando Limits (obrigatório)..."
@@ -96,21 +99,25 @@ install_profile() {
     case "$profile" in
         1)
             echo "Perfil Base Line selecionado."
+            check_arg="baseline"
             ;;
         2)
             echo "Instalando perfil Web / API..."
             download_file "$URL_WEB" "$DEST_SYSCTL_DIR/99-vm-web.conf"
             chmod 644 "$DEST_SYSCTL_DIR/99-vm-web.conf"
+            check_arg="web"
             ;;
         3)
             echo "Instalando perfil Banco de Dados..."
             download_file "$URL_DB" "$DEST_SYSCTL_DIR/99-vm-db.conf"
             chmod 644 "$DEST_SYSCTL_DIR/99-vm-db.conf"
+            check_arg="db"
             ;;
         4)
             echo "Instalando perfil Firewall / Proxy..."
             download_file "$URL_NET" "$DEST_SYSCTL_DIR/99-vm-network.conf"
             chmod 644 "$DEST_SYSCTL_DIR/99-vm-network.conf"
+            check_arg="network"
             ;;
         *)
             echo "Perfil inválido."
@@ -123,7 +130,7 @@ install_profile() {
 
     append_systemd_limits
     apply_sysctl
-    run_check
+    run_check "$check_arg"
 
     echo ""
     echo "Instalação concluída com sucesso."
