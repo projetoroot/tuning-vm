@@ -56,7 +56,6 @@ O princípio adotado é a separação clara entre Host e VM.
 | 2️⃣ | **VM Web / API** | `99-vm-web.conf` | 🌐 Melhor handling de conexões TCP |
 | 3️⃣ | **VM Banco de Dados** | `99-vm-db.conf` | 🧠 Otimização memória e swap |
 | 4️⃣ | **VM Firewall / Proxy** | `99-vm-network.conf` | 📡 Ajuste de filas e backlog de rede |
-| 5️⃣ | **VM Genérica** | `99-vm-baseline.conf` | ⚙ Perfil seguro padrão |
 
 ---
 
@@ -128,13 +127,13 @@ sysctl -a | grep net
 ## 📁 Estrutura Recomendada do Repositório
 
 ```
-repo/
-├ README.md
-├ sysctl/
 │ ├ 99-vm-baseline.conf
 │ ├ 99-vm-web.conf
 │ ├ 99-vm-db.conf
+│ └ 99-vm-limits.conf
 │ └ 99-vm-network.conf
+│ └ sysctl-vm-check.sh
+│ └ install.sh
 ```
 
 ---
@@ -147,3 +146,17 @@ repo/
 ✔ Manter backup antes de alterações  
 
 ---
+
+⚠️ **Instalação / Install**
+
+Script de instalação 
+
+Installation script 
+
+As instruções devem ser executadas como root, pois usuários comuns não têm acesso aos arquivos.
+
+Instructions be performed as 'root', as normal users do not have access to the files.
+
+wget https://raw.githubusercontent.com/projetoroot/tuning-vm/refs/heads/main/install.sh
+
+bash install.sh
