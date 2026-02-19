@@ -23,6 +23,7 @@ URL_NET="$BASE_URL/99-vm-network.conf"
 URL_CHECK="$BASE_URL/sysctl-vm-check.sh"
 
 DEST_SYSCTL_DIR="/etc/sysctl.d"
+DEST_SEC_DIR="/etc/security/limits.d"
 DEST_CHECK="/usr/local/bin/sysctl-vm-check.sh"
 SYSTEMD_CONF="/etc/systemd/system.conf"
 
@@ -119,6 +120,66 @@ trap run_check_on_exit EXIT
 clean_vm_sysctl() {
     echo "Limpando perfis VM antigos..."
     rm -f /etc/sysctl.d/99-vm-*.conf 2>/dev/null || true
+    rm -f /etc/security/limits.d/99-vm-*.conf 2>/dev/null || true
+}
+
+# =========================================
+# LIMITS CHECK
+# =========================================
+
+check_limits() {
+
+    echo
+    echo "== PAM Limits (nofile) =="
+
+    local soft hard proc_soft proc_hard sysd
+
+    soft=$(ulimit -Sn)
+    hard=$(ulimit -Hn)
+
+    # Ajuste automático do soft limit se permitido
+    if [[ "$soft" -lt 104857 && "$hard" -ge 104857 ]]; then
+        echo "[INFO] Ajustando soft limit da sessão atual"
+        ulimit -n 104857
+        soft=$(ulimit -Sn)
+    fi
+
+    proc_soft=$(awk '/Max open files/ {print $4}' /proc/$$/limits)
+    proc_hard=$(awk '/Max open files/ {print $5}' /proc/$$/limits)
+
+    if [[ "$soft" -ge 104857 ]]; then
+        printf "[ OK ] Soft limit sessão           = %s\n" "$soft"
+    else
+        printf "[WARN] Soft limit sessão           = %s\n" "$soft"
+    fi
+
+    if [[ "$hard" -ge 104857 ]]; then
+        printf "[ OK ] Hard limit sessão           = %s\n" "$hard"
+    else
+        printf "[WARN] Hard limit sessão           = %s\n" "$hard"
+    fi
+
+    if [[ "$proc_soft" -ge 104857 ]]; then
+        printf "[ OK ] Kernel soft (/proc)         = %s\n" "$proc_soft"
+    else
+        printf "[WARN] Kernel soft (/proc)         = %s\n" "$proc_soft"
+    fi
+
+    if [[ "$proc_hard" -ge 104857 ]]; then
+        printf "[ OK ] Kernel hard (/proc)         = %s\n" "$proc_hard"
+    else
+        printf "[WARN] Kernel hard (/proc)         = %s\n" "$proc_hard"
+    fi
+
+    sysd=$(grep -E "^DefaultLimitNOFILE=" "$SYSTEMD_CONF" 2>/dev/null | cut -d= -f2)
+
+    if [[ -n "$sysd" ]]; then
+        printf "[ OK ] systemd DefaultLimitNOFILE  = %s\n" "$sysd"
+    else
+        printf "[WARN] systemd DefaultLimitNOFILE  não definido\n"
+    fi
+
+    echo
 }
 
 # =========================================
@@ -140,8 +201,8 @@ install_profile() {
 
     echo
     echo "Instalando limits"
-    download_file "$URL_LIMITS" "$DEST_SYSCTL_DIR/99-vm-limits.conf"
-    chmod 644 "$DEST_SYSCTL_DIR/99-vm-limits.conf"
+    download_file "$URL_LIMITS" "$DEST_SEC_DIR/99-vm-limits.conf"
+    chmod 644 "$DEST_SEC_DIR/99-vm-limits.conf"
 
     echo "Instalando baseline"
     download_file "$URL_BASELINE" "$DEST_SYSCTL_DIR/99-vm-baseline.conf"
@@ -184,6 +245,7 @@ install_profile() {
     echo
     echo "Perfil aplicado com sucesso"
     run_check "$profile"
+    check_limits
 }
 
 # =========================================
